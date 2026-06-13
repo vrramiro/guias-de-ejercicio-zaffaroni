@@ -299,6 +299,7 @@ from (
 	group by pt.stock_num
 	order by sum(i.quantity) asc
 ) productos_menos_vendidos;
+go
 
 -- Necesito hacer una sub-query porque no puedo ordenar dentro de cada select por separado 
 -- teniendo un union.
@@ -310,4 +311,28 @@ Crear una Vista llamada ClientesConMultiplesOrdenes basada en la consulta realiz
 el punto 3.b  con los nombres de atributos solicitados en dicho punto.  
 */
 
-create view ClientesConMultiplesOrdenes 
+create view ClientesConMultiplesOrdenes as
+select c.customer_num numero_cliente, c.fname + ' ' + c.lname nombre_cliente
+from customer c
+join orders o on c.customer_num = o.customer_num
+group by c.customer_num, c.fname, c.lname
+having count(o.order_num) > 1;
+go 
+
+/*
+13.
+Crear una Vista llamada Productos_HRO en base a la consulta
+SELECT * FROM products
+WHERE manu_code = “HRO”
+
+La vista deberá restringir la posibilidad de insertar datos que no cumplan con su criterio de
+selección.
+a. Realizar un INSERT de un Producto con manu_code=’ANZ’ y stock_num=303. Qué sucede?
+b. Realizar un INSERT con manu_code=’HRO’ y stock_num=303. Qué sucede?
+c. Validar los datos insertados a través de la vista.
+*/
+
+create view Productos_HRO as
+select * from products
+where manu_code = 'HRO'
+with check option
