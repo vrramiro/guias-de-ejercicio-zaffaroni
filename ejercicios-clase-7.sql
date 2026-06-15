@@ -1,6 +1,7 @@
 use Comercial;
 
 /*
+a- 
 Stored Procedures
 Crear la siguiente tabla CustomerStatistics con los siguientes campos
 customer_num (entero y pk), ordersqty (entero), maxdate (date), uniqueProducts
@@ -101,3 +102,172 @@ commit transaction
 rollback transaction
 
 select * from customer
+go
+/*
+b-
+Crear un procedimiento ‘migraClientes’ que reciba dos parámetros
+customer_numDES y customer_numHAS y que dependiendo el tipo de cliente y la
+cantidad de órdenes los inserte en las tablas clientesCalifornia, clientesNoCaBaja,
+clienteNoCAAlta.
+
+• El procedimiento deberá migrar de la tabla customer todos los
+clientes de California a la tabla clientesCalifornia, los clientes que no
+son de California pero tienen más de 999u$ en OC en
+clientesNoCaAlta y los clientes que tiene menos de 1000u$ en OC en
+la tablas clientesNoCaBaja.
+• Se deberá actualizar un campo status en la tabla customer con valor
+‘P’ Procesado, para todos aquellos clientes migrados.
+• El procedimiento deberá contemplar toda la migración como un lote,
+en el caso que ocurra un error, se deberá informar el error ocurrido y
+abortar y deshacer la operación.
+*/
+
+create table clientesCalifornia (
+	customer_num smallint primary key,
+	fname varchar(15),
+	lname varchar(15),
+	company varchar(20),
+	address1 varchar(20),
+	address2 varchar(20),
+	city varchar(15),
+	state char(2),
+	zipcode char(5),
+	phone varchar(18),
+	customer_num_referedBy smallint
+	constraint state_cli_ca_FK foreign key (state) references state(state),
+	constraint customer_num_referedBy1_FK foreign key (customer_num_referedBy) references customer(customer_num)
+);
+
+
+create table clientesNoCaBaja (
+	customer_num smallint primary key,
+	fname varchar(15),
+	lname varchar(15),
+	company varchar(20),
+	address1 varchar(20),
+	address2 varchar(20),
+	city varchar(15),
+	state char(2),
+	zipcode char(5),
+	phone varchar(18),
+	customer_num_referedBy smallint
+	constraint state_cli_no_ca_baja_FK foreign key (state) references state(state),
+	constraint customer_num_referedBy2_FK foreign key (customer_num_referedBy) references customer(customer_num)
+);
+
+create table clientesNoCaAlta (
+	customer_num smallint primary key,
+	fname varchar(15),
+	lname varchar(15),
+	company varchar(20),
+	address1 varchar(20),
+	address2 varchar(20),
+	city varchar(15),
+	state char(2),
+	zipcode char(5),
+	phone varchar(18),
+	customer_num_referedBy smallint
+	constraint state_cli_no_ca_alta_FK foreign key (state) references state(state),
+	constraint customer_num_referedBy3_FK foreign key (customer_num_referedBy) references customer(customer_num)
+);
+go
+
+drop table clientesCalifornia;
+drop table clientesNoCaAlta;
+drop table clientesNoCaBaja;
+go
+
+alter procedure migrarClientes (@customer_numDES smallint, @customer_numHAS smallint)
+as
+begin
+
+	begin transaction
+	begin try
+		insert into clientesCalifornia
+		select
+		c.customer_num,
+		c.fname,
+		c.lname,
+		c.company,
+		c.address1,
+		c.address2,
+		c.city,
+		c.state,
+		c.zipcode,
+		c.phone,
+		c.customer_num_referedBy
+		from customer c
+		where state = 'CA' 
+		and customer_num >= @customer_numDES 
+		and customer_num <= @customer_numHAS
+
+		insert into clientesNoCaAlta
+		select
+		c.customer_num,
+		c.fname,
+		c.lname,
+		c.company,
+		c.address1,
+		c.address2,
+		c.city,
+		c.state,
+		c.zipcode,
+		c.phone,
+		c.customer_num_referedBy
+		from customer c 
+		join orders o on o.customer_num = c.customer_num 
+		join items i on i.order_num = o.order_num
+		where c.state <> 'CA'
+		and c.customer_num >= @customer_numDES 
+		and c.customer_num <= @customer_numHAS
+		group by c.customer_num, c.fname, c.lname, c.company, c.address1, c.address2, c.city, c.state, c.zipcode, c.phone, c.customer_num_referedBy
+		having c.state <> 'CA' and sum(i.quantity * i.unit_price) > 999
+
+		insert into clientesNoCaBaja
+		select
+		c.customer_num,
+		c.fname,
+		c.lname,
+		c.company,
+		c.address1,
+		c.address2,
+		c.city,
+		c.state,
+		c.zipcode,
+		c.phone,
+		c.customer_num_referedBy
+		from customer c 
+		join orders o on o.customer_num = c.customer_num 
+		join items i on i.order_num = o.order_num
+		where c.state <> 'CA'
+		and c.customer_num >= @customer_numDES 
+		and c.customer_num <= @customer_numHAS
+		group by c.customer_num, c.fname, c.lname, c.company, c.address1, c.address2, c.city, c.state, c.zipcode, c.phone, c.customer_num_referedBy
+		having sum(i.quantity * i.unit_price) < 1000
+
+		update customer
+		set status = 'P'
+		where customer_num in (
+			select customer_num
+			from clientesCalifornia
+			union
+			select customer_num
+			from clientesNoCaAlta
+			union
+			select customer_num
+			from clientesNoCaBaja
+			
+		)
+		commit transaction
+	end try
+	begin catch
+		rollback transaction
+		throw;
+	end catch 
+
+end
+go
+
+execute migrarClientes 100, 140
+
+select * from clientesCalifornia
