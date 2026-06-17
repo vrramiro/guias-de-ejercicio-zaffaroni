@@ -268,6 +268,28 @@ begin
 end
 go
 
-execute migrarClientes 100, 140
+execute migrarClientes 100, 140;
 
-select * from clientesCalifornia
+select * from clientesCalifornia;
+
+/*
+c.
+Crear un procedimiento ‘actualizaPrecios’ que reciba como parámetros
+manu_codeDES, manu_codeHAS y porcActualizacion que dependiendo del tipo de
+cliente y la cantidad de órdenes genere las siguientes tablas listaPrecioMayor y
+listaPreciosMenor. Ambas tienen las misma estructura que la tabla Productos.
+• El procedimiento deberá tomar de la tabla stock todos los productos que
+correspondan al rango de fabricantes asignados por parámetro.
+Por cada producto del fabricante se evaluará la cantidad (quantity) comprada.
+Si la misma es mayor o igual a 500 se grabará el producto en la tabla
+listaPrecioMayor y el unit_price deberá ser actualizado con (unit_price *
+(porcActualización *0,80)),
+Si la cantidad comprada del producto es menor a 500 se actualizará (o insertará)
+en la tabla listaPrecioMenor y el unit_price se actualizará con (unit_price *
+porcActualizacion)
+• Asimismo, se deberá actualizar un campo status de la tabla stock con valor ‘A’
+Actualizado, para todos aquellos productos con cambio de precio actualizado.
+• El procedimiento deberá contemplar todas las operaciones de cada fabricante
+como un lote, en el caso que ocurra un error, se deberá informar el error ocurrido
+y deshacer la operación de ese fabricante.
+*/
