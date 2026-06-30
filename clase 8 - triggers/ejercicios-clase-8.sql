@@ -170,4 +170,31 @@ donde 999 corresponde al nro. de la orden de compra a la que pertenece el ítem 
 lead_time el valor 1.
 */
 
+alter trigger itemSinManufact
+on items
+instead of insert 
+as
+begin
+	insert into manufact (manu_code, manu_name, lead_time)
+	select
+	i.manu_code,
+	'Manu Orden ' + cast(i.order_num as varchar(1000)),
+	1 
+	from inserted i
+	left join manufact m on i.manu_code = m.manu_code
+	where m.manu_code is null
+	group by i.manu_code, i.order_num
+end
 
+select * from products
+select * from items
+
+insert into items values 
+(7, 1000, 4, 'HRO', 1, 980.00),
+(7, 1564, 4, 'ÑLK', 1, 980.00),
+(7, 2341, 4, 'MBO', 1, 980.00),
+(7, 4442, 4, 'BOB', 1, 980.00)
+
+select * from manufact where manu_code in ('ÑLK', 'MBO', 'BOB')
+
+-- 6
