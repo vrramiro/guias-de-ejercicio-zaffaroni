@@ -1,7 +1,6 @@
 use Comercial
 
 -- 1
-
 select c.customer_num, c.lname + ' ' + c.fname nombre_completo, 
 sum(i.quantity*i.unit_price) total_del_cliente, count(o.order_num) ocs_cliente,
 (
@@ -67,3 +66,4 @@ where c.state in (select top 1 s.state
                 group by s.state
                 order by count(c2.customer_num) desc)
 group by month(o.order_date), a.unit_descr, c.lname, c.fname
+order by mes asc, producto_pedido_mes desc

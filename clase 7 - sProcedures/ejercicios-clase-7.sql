@@ -6,14 +6,14 @@ Stored Procedures
 Crear la siguiente tabla CustomerStatistics con los siguientes campos
 customer_num (entero y pk), ordersqty (entero), maxdate (date), uniqueProducts
 (entero)
-Crear un procedimiento ‘actualizaEstadisticas’ que reciba dos parámetros
+Crear un procedimiento ï¿½actualizaEstadisticasï¿½ que reciba dos parï¿½metros
 customer_numDES y customer_numHAS y que en base a los datos de la tabla
-customer cuyo customer_num estén en en rango pasado por parámetro, inserte (si
+customer cuyo customer_num estï¿½n en en rango pasado por parï¿½metro, inserte (si
 no existe) o modifique el registro de la tabla CustomerStatistics con la siguiente
-información:
-Ordersqty contedrá la cantidad de órdenes para cada cliente.
-Maxdate contedrá la fecha máxima de la última órde puesta por cada cliente.
-uniqueProducts contendrá la cantidad única de tipos de productos adquiridos
+informaciï¿½n:
+Ordersqty contedrï¿½ la cantidad de ï¿½rdenes para cada cliente.
+Maxdate contedrï¿½ la fecha mï¿½xima de la ï¿½ltima ï¿½rde puesta por cada cliente.
+uniqueProducts contendrï¿½ la cantidad ï¿½nica de tipos de productos adquiridos
 por cada cliente.
 */
 
@@ -105,21 +105,21 @@ select * from customer
 go
 /*
 b-
-Crear un procedimiento ‘migraClientes’ que reciba dos parámetros
+Crear un procedimiento ï¿½migraClientesï¿½ que reciba dos parï¿½metros
 customer_numDES y customer_numHAS y que dependiendo el tipo de cliente y la
-cantidad de órdenes los inserte en las tablas clientesCalifornia, clientesNoCaBaja,
+cantidad de ï¿½rdenes los inserte en las tablas clientesCalifornia, clientesNoCaBaja,
 clienteNoCAAlta.
 
-• El procedimiento deberá migrar de la tabla customer todos los
+ï¿½ El procedimiento deberï¿½ migrar de la tabla customer todos los
 clientes de California a la tabla clientesCalifornia, los clientes que no
-son de California pero tienen más de 999u$ en OC en
+son de California pero tienen mï¿½s de 999u$ en OC en
 clientesNoCaAlta y los clientes que tiene menos de 1000u$ en OC en
 la tablas clientesNoCaBaja.
-• Se deberá actualizar un campo status en la tabla customer con valor
-‘P’ Procesado, para todos aquellos clientes migrados.
-• El procedimiento deberá contemplar toda la migración como un lote,
-en el caso que ocurra un error, se deberá informar el error ocurrido y
-abortar y deshacer la operación.
+ï¿½ Se deberï¿½ actualizar un campo status en la tabla customer con valor
+ï¿½Pï¿½ Procesado, para todos aquellos clientes migrados.
+ï¿½ El procedimiento deberï¿½ contemplar toda la migraciï¿½n como un lote,
+en el caso que ocurra un error, se deberï¿½ informar el error ocurrido y
+abortar y deshacer la operaciï¿½n.
 */
 
 create table clientesCalifornia (
@@ -271,25 +271,111 @@ go
 execute migrarClientes 100, 140;
 
 select * from clientesCalifornia;
+go
 
 /*
 c.
-Crear un procedimiento ‘actualizaPrecios’ que reciba como parámetros
+Crear un procedimiento ï¿½actualizaPreciosï¿½ que reciba como parï¿½metros
 manu_codeDES, manu_codeHAS y porcActualizacion que dependiendo del tipo de
-cliente y la cantidad de órdenes genere las siguientes tablas listaPrecioMayor y
+cliente y la cantidad de ï¿½rdenes genere las siguientes tablas listaPrecioMayor y
 listaPreciosMenor. Ambas tienen las misma estructura que la tabla Productos.
-• El procedimiento deberá tomar de la tabla stock todos los productos que
-correspondan al rango de fabricantes asignados por parámetro.
-Por cada producto del fabricante se evaluará la cantidad (quantity) comprada.
-Si la misma es mayor o igual a 500 se grabará el producto en la tabla
-listaPrecioMayor y el unit_price deberá ser actualizado con (unit_price *
-(porcActualización *0,80)),
-Si la cantidad comprada del producto es menor a 500 se actualizará (o insertará)
-en la tabla listaPrecioMenor y el unit_price se actualizará con (unit_price *
+ï¿½ El procedimiento deberï¿½ tomar de la tabla stock todos los productos que
+correspondan al rango de fabricantes asignados por parï¿½metro.
+Por cada producto del fabricante se evaluarï¿½ la cantidad (quantity) comprada.
+Si la misma es mayor o igual a 500 se grabarï¿½ el producto en la tabla
+listaPrecioMayor y el unit_price deberï¿½ ser actualizado con (unit_price *
+(porcActualizaciï¿½n *0,80)),
+Si la cantidad comprada del producto es menor a 500 se actualizarï¿½ (o insertarï¿½)
+en la tabla listaPrecioMenor y el unit_price se actualizarï¿½ con (unit_price *
 porcActualizacion)
-• Asimismo, se deberá actualizar un campo status de la tabla stock con valor ‘A’
+ï¿½ Asimismo, se deberï¿½ actualizar un campo status de la tabla stock con valor ï¿½Aï¿½
 Actualizado, para todos aquellos productos con cambio de precio actualizado.
-• El procedimiento deberá contemplar todas las operaciones de cada fabricante
-como un lote, en el caso que ocurra un error, se deberá informar el error ocurrido
-y deshacer la operación de ese fabricante.
+ï¿½ El procedimiento deberï¿½ contemplar todas las operaciones de cada fabricante
+como un lote, en el caso que ocurra un error, se deberï¿½ informar el error ocurrido
+y deshacer la operaciï¿½n de ese fabricante.
 */
+
+-- como se tiene que contemplar las operaciones DE CADA FABRICANTE como un lote
+-- entonces por cada uno de los manufact se abre una transaccion
+-- eso me permite rollbackear solo la transacciÃ³n del manufact en ese momento
+-- y no la de todos los demÃ¡s
+
+create table listaPrecioMayor (
+	stock_num smallint,
+	manu_code char(3),
+	unit_price decimal(6,2),
+	unit_code smallint,
+	status char(1)
+)
+
+create table listaPrecioMenor (
+	stock_num smallint,
+	manu_code char(3),
+	unit_price decimal(6,2),
+	unit_code smallint,
+	status char(1)
+)
+go
+
+create procedure actualizarPrecios(@manu_codeDES char(3), @manu_codeHAS char(3), @porcActualizacion decimal(6, 2))
+as 
+begin
+
+	declare manufactCursor cursor for
+	select m.manu_code 
+	from manufact m
+	where m.manu_code between @manu_codeDES and @manu_codeHAS
+
+	declare @manu_code char(3)
+
+	open manufactCursor
+	fetch manufactCursor into @manu_code
+	while @@FETCH_STATUS = 0
+	begin
+		begin transaction
+		begin try
+			insert into listaPrecioMayor (stock_num, manu_code, unit_price, unit_code, status)
+			select
+			p.stock_num, p.manu_code, p.unit_price, p.unit_code, 'A'
+			from products p
+			join items i on i.stock_num = p.stock_num and i.manu_code = p.manu_code
+			where p.manu_code = @manu_code
+			group by p.stock_num, p.manu_code, p.unit_price, p.unit_code, p.[status]
+			having sum(i.quantity) >= 500
+
+			insert into listaPrecioMenor (stock_num, manu_code, unit_price, unit_code, status)
+			select
+			p.stock_num, p.manu_code, p.unit_price, p.unit_code, 'A'
+			from products p
+			join items i on i.stock_num = p.stock_num and i.manu_code = p.manu_code
+			where p.manu_code = @manu_code
+			group by p.stock_num, p.manu_code, p.unit_price, p.unit_code, p.[status]
+			having sum(i.quantity) < 500
+
+			update products
+			set unit_price = unit_price * @porcActualizacion * 0.8, status = 'A'
+			where manu_code = @manu_code 
+			and stock_num in (select stock_num from listaPrecioMayor lpm where lpm.manu_code = @manu_code)
+
+			update products
+			set unit_price = unit_price * @porcActualizacion, status = 'A'
+			where manu_code = @manu_code
+			and stock_num in (select stock_num from listaPrecioMenor lpm where lpm.manu_code = @manu_code)
+		end try
+		begin catch
+			rollback transaction
+		end catch
+		commit transaction
+		fetch manufactCursor into @manu_code
+	end
+	close manufactCursor
+	deallocate manufactCursor
+
+end
+
+select * from manufact
+
+execute actualizarPrecios 'ANZ', 'KAR', 0.2
+
+select * from listaPrecioMenor
+select * from products where status = 'A'
